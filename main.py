@@ -5,6 +5,8 @@ import numpy as np
 original_fourier_df = pd.read_csv('./Fourier_Space_Original.txt', names=['value'], sep=' ', header=None)
 fourier_df = pd.read_csv('./Fourier_Space.txt', names=['value'], sep=' ', header=None)
 
+# ====================================================================================================================================
+# Part 2 & 3: 
 # My laptop does not like it when it's too big
 # Trim down to first n points
 n = 500
@@ -14,8 +16,6 @@ f = fourier_df.iloc[:n,:]
 dt = 1/2000
 t = np.arange(0,dt*n,dt)
 fhat = np.fft.fft(f,n) # Compute the FFT
-
-fft = fhat
 
 PSD = fhat * np.conj(fhat) / n # Power spectrum (power per freq)
 freq = (1/(dt*n)) * np.arange(n) # Create x-axis of frequencies in Hz
@@ -51,6 +51,7 @@ plt.title('Cleaned FFT Magnitude')
 plt.xlabel('Frequency [Hz]')
 plt.ylabel('|F(f)|')
 plt.grid(True)
+
 plt.show()
 
 
@@ -82,6 +83,41 @@ plt.grid(True)
 
 plt.show()
 
+# ====================================================================================================================================
+# Part 4: Process Data in 1-Second Windows
+windows = 5
+NUM_SUBPLOTS = windows
 
+for i in range(windows):
+    start_idx = i * 2000
+    end_idx = start_idx + 2000 # Make sure it's EXCLUSIVE
 
+    n = end_idx - start_idx # [0, 2000) -> 2000 points]
+    f = fourier_df.iloc[start_idx:end_idx,:]    
 
+    # Compute the Fast Fourier Transform (FFT)
+    dt = 1/2000
+    t = np.arange(0,dt*n,dt)
+    fhat = np.fft.fft(f,n) # Compute the FFT
+
+    PSD = fhat * np.conj(fhat) / n # Power spectrum (power per freq)
+    freq = (1/(dt*n)) * np.arange(n) # Create x-axis of frequencies in Hz
+    L = np.arange(0,n,dtype='int')
+
+    # Use the PSD to filter out noise
+    PSD_THRESHOLD = 50
+    indices = PSD > PSD_THRESHOLD # Find all freqs with large power
+    PSDclean = PSD * indices # Zero out all others
+    fhat = indices * fhat # Zero out small Fourier coeffs. in Y
+    ffilt = np.fft.ifft(fhat) # Inverse FFT for filtered time signal
+
+    plt.subplot(NUM_SUBPLOTS, 1, i+1)
+    plt.plot(freq[L], np.abs(fhat[L]), color='red')  # Magnitude of FFT
+    plt.title(f'Cleaned FFT Magnitude for {i}th-{i+1}th second')
+    plt.xlabel('Frequency [Hz]')
+    plt.ylabel('|F(f)|')
+    plt.grid(True)
+
+plt.show()
+
+# ====================================================================================================================================
